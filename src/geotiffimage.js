@@ -315,35 +315,37 @@ class GeoTIFFImage {
           const promise = this.getTileOrStrip(xTile, yTile, sample, poolOrDecoder);
           promises.push(promise);
           promise.then((tile) => {
-            const buffer = tile.data;
-            const dataView = new DataView(buffer);
-            const firstLine = tile.y * tileHeight;
-            const firstCol = tile.x * tileWidth;
-            const lastLine = (tile.y + 1) * tileHeight;
-            const lastCol = (tile.x + 1) * tileWidth;
-            const reader = sampleReaders[si];
+            if (tile && tile.data) {
+              const buffer = tile.data;
+              const dataView = new DataView(buffer);
+              const firstLine = tile.y * tileHeight;
+              const firstCol = tile.x * tileWidth;
+              const lastLine = (tile.y + 1) * tileHeight;
+              const lastCol = (tile.x + 1) * tileWidth;
+              const reader = sampleReaders[si];
 
-            const ymax = Math.min(tileHeight, tileHeight - (lastLine - imageWindow[3]));
-            const xmax = Math.min(tileWidth, tileWidth - (lastCol - imageWindow[2]));
+              const ymax = Math.min(tileHeight, tileHeight - (lastLine - imageWindow[3]));
+              const xmax = Math.min(tileWidth, tileWidth - (lastCol - imageWindow[2]));
 
-            for (let y = Math.max(0, imageWindow[1] - firstLine); y < ymax; ++y) {
-              for (let x = Math.max(0, imageWindow[0] - firstCol); x < xmax; ++x) {
-                const pixelOffset = ((y * tileWidth) + x) * bytesPerPixel;
-                const value = reader.call(
-                  dataView, pixelOffset + srcSampleOffsets[si], littleEndian,
-                );
-                let windowCoordinate;
-                if (interleave) {
-                  windowCoordinate =
-                    ((y + firstLine - imageWindow[1]) * windowWidth * samples.length) +
-                    ((x + firstCol - imageWindow[0]) * samples.length) +
-                    si;
-                  valueArrays[windowCoordinate] = value;
-                } else {
-                  windowCoordinate = (
-                    (y + firstLine - imageWindow[1]) * windowWidth
-                  ) + x + firstCol - imageWindow[0];
-                  valueArrays[si][windowCoordinate] = value;
+              for (let y = Math.max(0, imageWindow[1] - firstLine); y < ymax; ++y) {
+                for (let x = Math.max(0, imageWindow[0] - firstCol); x < xmax; ++x) {
+                  const pixelOffset = ((y * tileWidth) + x) * bytesPerPixel;
+                  const value = reader.call(
+                    dataView, pixelOffset + srcSampleOffsets[si], littleEndian,
+                  );
+                  let windowCoordinate;
+                  if (interleave) {
+                    windowCoordinate =
+                      ((y + firstLine - imageWindow[1]) * windowWidth * samples.length) +
+                      ((x + firstCol - imageWindow[0]) * samples.length) +
+                      si;
+                    valueArrays[windowCoordinate] = value;
+                  } else {
+                    windowCoordinate = (
+                      (y + firstLine - imageWindow[1]) * windowWidth
+                    ) + x + firstCol - imageWindow[0];
+                    valueArrays[si][windowCoordinate] = value;
+                  }
                 }
               }
             }
